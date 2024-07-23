@@ -64,20 +64,13 @@ Make sure you have Node.js and npm installed. You can download them from [nodejs
 
 ## Installation
 
-1. **Clone the repository**:
-
-   ```sh
-   git clone <repository-url>
-   cd <repository-directory>
-   ```
-
-2. **Install dependencies**:
+1. **Install dependencies**:
 
    ```sh
    npm install
    ```
 
-3. **Create a `.env` file** in the root directory of your project with the following content:
+2. **Create a `.env` file** in the root directory of your project with the following content:
 
    ```plaintext
    OPENAI_API_KEY=your_openai_api_key
