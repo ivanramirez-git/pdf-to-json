@@ -1,0 +1,6 @@
+node_modules/
+.env
+pdfs.csv
+Prompt/
+data/
+trash/

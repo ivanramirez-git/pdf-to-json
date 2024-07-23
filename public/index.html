@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload PDF</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Upload PDF</h1>
+        <form id="upload-form">
+            <div id="drop-area" class="drop-area">
+                <p>Drag & Drop your PDF here or</p>
+                <label for="file-input" id="file-label">Select a PDF</label>
+                <input type="file" id="file-input" name="pdf">
+                <p id="file-name" style="margin-top: 10px;"></p>
+            </div>
+            <button type="submit" id="upload-button" disabled>
+                Analizar <span class="loader" id="loader" style="display: none;"></span>
+            </button>
+        </form>
+        <div class="result">
+            <div id="json-output" class="json-output"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        const fileInput = document.getElementById('file-input');
+        const dropArea = document.getElementById('drop-area');
+        const uploadButton = document.getElementById('upload-button');
+        const output = document.getElementById('json-output');
+        const fileNameDisplay = document.getElementById('file-name');
+        const loader = document.getElementById('loader');
+
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            if (!fileInput.files.length) return;
+
+            const formData = new FormData();
+            formData.append('pdf', fileInput.files[0]);
+            formData.append('pdf_name', fileInput.files[0].name);
+
+            uploadButton.disabled = true;
+            loader.style.display = 'inline-block';
+            try {
+                const response = await fetch('/api/pdf/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                displayResult(result);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error processing the PDF.');
+            } finally {
+                loader.style.display = 'none';
+                uploadButton.disabled = false;
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0 && fileInput.files[0].type === 'application/pdf') {
+                uploadButton.disabled = false;
+                dropArea.classList.add('loaded');
+                fileNameDisplay.textContent = fileInput.files[0].name;
+            } else {
+                uploadButton.disabled = true;
+                dropArea.classList.remove('loaded');
+                fileNameDisplay.textContent = '';
+            }
+        });
+
+        dropArea.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropArea.classList.add('dragover');
+        });
+
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.classList.remove('dragover');
+        });
+
+        dropArea.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropArea.classList.remove('dragover');
+            const files = event.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'application/pdf') {
+                fileInput.files = files; // Set the files to the file input
+                uploadButton.disabled = false;
+                dropArea.classList.add('loaded');
+                fileNameDisplay.textContent = files[0].name;
+            }
+        });
+
+        function displayResult(data) {
+            output.innerHTML = '';
+            data.flat().forEach(page => {
+                const pageSection = document.createElement('div');
+                pageSection.className = 'page-section';
+
+                const pageTitle = document.createElement('h2');
+                pageTitle.textContent = `Page ${page.page_number}: ${page.chapter_title}`;
+                pageSection.appendChild(pageTitle);
+
+                const pageContent = document.createElement('p');
+                pageContent.textContent = page.content;
+                pageSection.appendChild(pageContent);
+
+                const paragraphs = document.createElement('div');
+                paragraphs.className = 'paragraphs';
+                page.paragraphs.forEach((paragraph, index) => {
+                    const para = document.createElement('p');
+                    para.textContent = `Paragraph ${index + 1}: ${paragraph}`;
+                    paragraphs.appendChild(para);
+                });
+                pageSection.appendChild(paragraphs);
+
+                const keywords = document.createElement('div');
+                keywords.className = 'keywords';
+                const keywordsTitle = document.createElement('h3');
+                keywordsTitle.textContent = 'Paragraph Keywords';
+                keywords.appendChild(keywordsTitle);
+                const keywordsList = document.createElement('ul');
+                page.paragraph_keywords.forEach(paragraphKeywords => {
+                    paragraphKeywords.forEach(keyword => {
+                        const keywordItem = document.createElement('li');
+                        keywordItem.textContent = keyword;
+                        keywordsList.appendChild(keywordItem);
+                    });
+                });
+                keywords.appendChild(keywordsList);
+                pageSection.appendChild(keywords);
+
+                const pageKeywords = document.createElement('div');
+                pageKeywords.className = 'page-keywords';
+                const pageKeywordsTitle = document.createElement('h3');
+                pageKeywordsTitle.textContent = 'Page Keywords';
+                pageKeywords.appendChild(pageKeywordsTitle);
+                const pageKeywordsList = document.createElement('ul');
+                page.page_keywords.forEach(keyword => {
+                    const keywordItem = document.createElement('li');
+                    keywordItem.textContent = keyword;
+                    pageKeywordsList.appendChild(keywordItem);
+                });
+                pageKeywords.appendChild(pageKeywordsList);
+                pageSection.appendChild(pageKeywords);
+
+                const figures = document.createElement('div');
+                figures.className = 'figures';
+                const figuresTitle = document.createElement('h3');
+                figuresTitle.textContent = 'Figures';
+                figures.appendChild(figuresTitle);
+                const figuresList = document.createElement('ul');
+                page.figures.forEach(figure => {
+                    const figureItem = document.createElement('li');
+                    figureItem.textContent = figure;
+                    figuresList.appendChild(figureItem);
+                });
+                figures.appendChild(figuresList);
+                pageSection.appendChild(figures);
+
+                const tables = document.createElement('div');
+                tables.className = 'tables';
+                const tablesTitle = document.createElement('h3');
+                tablesTitle.textContent = 'Tables';
+                tables.appendChild(tablesTitle);
+                const tablesList = document.createElement('ul');
+                page.tables.forEach(table => {
+                    const tableItem = document.createElement('li');
+                    tableItem.textContent = table;
+                    tablesList.appendChild(tableItem);
+                });
+                tables.appendChild(tablesList);
+                pageSection.appendChild(tables);
+
+                output.appendChild(pageSection);
+            });
+        }
+    </script>
+</body>
+
+</html>
